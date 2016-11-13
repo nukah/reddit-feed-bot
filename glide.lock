@@ -1,0 +1,43 @@
+hash: 31f4ba157302b48e40f8939e14d31500324aa53ffde4e311a3ebc140d74a1134
+updated: 2016-11-14T00:51:26.384550727+03:00
+imports:
+- name: github.com/axgle/mahonia
+  version: c528b747d92d41ca581a7acf3e604c396fc7c034
+- name: github.com/d4l3k/go-pry
+  version: 7cfbbead09fd5b14baa54f67b36658d67c4e834d
+- name: github.com/garyburd/redigo
+  version: 8873b2f1995f59d4bcdd2b0dc9858e2cb9bf0c13
+  subpackages:
+  - redis
+- name: github.com/mgutz/ansi
+  version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
+- name: github.com/microcosm-cc/bluemonday
+  version: f77f16ffc87a6a58814e64ae72d55f9c41374e6d
+- name: github.com/mitchellh/hashstructure
+  version: b098c52ef6beab8cd82bc4a32422cf54b890e8fa
+- name: github.com/mmcdole/gofeed
+  version: 303223474e837398b2f8a265e5572958bb5568c0
+- name: github.com/rafaeljusto/redigomock
+  version: ca49a8af34fc0c903a37409317576da14b3f1cbd
+- name: github.com/SlyMarbo/rss
+  version: bac7304e72ac159ad22fff6c34ca811fdc264b91
+- name: github.com/tucnak/telebot
+  version: 6360f1f7d9464545d98f2b478cd83240a8ced98e
+- name: golang.org/x/tools
+  version: 5e2ae75eb72a62985e086eed33a5982a929e4fff
+  subpackages:
+  - |
+    go/gcimporter15
+- name: gopkg.in/bsm/ratelimit.v1
+  version: db14e161995a5177acef654cb0dd785e8ee8bc22
+- name: gopkg.in/redis.v5
+  version: b6bfe529a846fbb9a58c832ce71c61b6fde12c15
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
+- name: gopkg.in/telegram-bot-api.v4
+  version: a7f48eb2dd301356942677e65bebe0c9aef07013
+testImports: []
