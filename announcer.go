@@ -1,6 +1,7 @@
 package main
 
 import (
+  "os"
   "fmt"
   "log"
   "time"
@@ -108,7 +109,7 @@ func removeSource(source string) {
 }
 
 func urlByKey(source string) string {
-  return fmt.Sprintf("%s/.rss", sourceUrl(source))
+  return fmt.Sprintf("%s.rss", sourceUrl(source))
 }
 
 func sourceUrl(source string) string {
@@ -171,7 +172,7 @@ func main() {
       }
     }
   }()
-  bot, err := telebot.NewBot(***REMOVED***)
+  bot, err := telebot.NewBot(os.Getenv("API_TOKEN"))
   if err != nil {
     log.Fatalln(err)
   }
