@@ -21,7 +21,7 @@ type FeedUpdate struct {
 
 var redditSubscribeRegexp = regexp.MustCompile(`^\/(subscribe)\s*\/r/(\w*)$`)
 var redditUnsubscribeRegexp = regexp.MustCompile(`^\/(unsubscribe)\s*\/r/(\w*)$`)
-var rClient = redis.NewClient(&redis.Options{ Addr: "localhost:6379", DB: 0 })
+var rClient = redis.NewClient(&redis.Options{ Addr: "redisdb:6379", DB: 0 })
 var feedChan = make(chan FeedUpdate)
 
 func refreshKey(name string) string {
