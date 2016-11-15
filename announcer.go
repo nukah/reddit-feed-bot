@@ -14,6 +14,16 @@ import (
   "github.com/tucnak/telebot"
 )
 
+const (
+  REFRESH_KEY = "refresh_time"
+  FETCHED_KEY = "fetched_items"
+  SOURCE_USERS_KEY = "sources:%v"
+  USER_SOURCES_KEY = "users:%v"
+  USER_SOURCE_SUBSCRIPTION_DATE_KEY = "%s:subscribed_at"
+  USER_AGENT = "Telebot RSS v. 0.1"
+
+)
+
 type FeedUpdate struct {
   item *rss.Item
   source string
@@ -24,12 +34,21 @@ var redditUnsubscribeRegexp = regexp.MustCompile(`^\/(unsubscribe)\s*\/r/(\w*)$`
 var rClient = redis.NewClient(&redis.Options{ Addr: "redisdb:6379", DB: 0 })
 var feedChan = make(chan FeedUpdate)
 
-func refreshKey(name string) string {
-  return fmt.Sprintf("refresh_time:%s", name)
+func setUpdate(name string, updateTime time.Time) {
+  _, err := rClient.HSet(REFRESH_KEY, name, updateTime.Format(time.RFC1123Z)).Result()
+  if err != nil {
+    log.Println(err)
+  }
 }
 
-func setUpdate(name string, updateTime time.Time) {
-  rClient.Set(refreshKey(name), updateTime.Format(time.RFC1123Z), 0)
+func needToUpdate(name string) bool {
+  lastUpdate, err := rClient.HGet(REFRESH_KEY, name).Result()
+  if err != nil || err == redis.Nil {
+    log.Println(err)
+    return true
+  }
+  parsedTime, _ := time.Parse(time.RFC1123Z, lastUpdate)
+  return time.Now().After(parsedTime)
 }
 
 func fetchFunc(url string) (resp *http.Response, err error) {
@@ -37,19 +56,9 @@ func fetchFunc(url string) (resp *http.Response, err error) {
   if err != nil {
     return
   }
-  req.Header.Set("User-Agent", "MagpieRSS/0.7 ( http://magpierss.sf.net)")
+  req.Header.Set("User-Agent", USER_AGENT)
   return http.DefaultClient.Do(req)
 }
-
-func needToUpdate(name string) bool {
-  lastUpdate, err := rClient.Get(refreshKey(name)).Result()
-  if err != nil || err == redis.Nil {
-    return true
-  }
-  parsedTime, _ := time.Parse(time.RFC1123Z, lastUpdate)
-  return time.Now().After(parsedTime)
-}
-
 
 func fetchUpdates(source string) {
   if needToUpdate(source) {
@@ -66,19 +75,19 @@ func fetchUpdates(source string) {
 }
 
 func processItem(source string, feed *rss.Feed, item *rss.Item) {
-  if rClient.SIsMember("fetched_items", item.ID).Val() == true {
+  if rClient.SIsMember(FETCHED_KEY, item.ID).Val() == true {
     return
   } else {
-    if err := rClient.SAdd("fetched_items", item.ID).Err(); err == nil {
+    if err := rClient.SAdd(FETCHED_KEY, item.ID).Err(); err == nil {
       feedChan <- FeedUpdate{item, source}
     }
   }
 }
 
 func addSourceToUser(source string, user_id int) {
-  sourceKey := fmt.Sprintf("sources:%v", source)
-  usersKey := fmt.Sprintf("users:%v", user_id)
-  subscriptionStartKey := fmt.Sprintf("%s:subscribed_at", source)
+  sourceKey := fmt.Sprintf(SOURCE_USERS_KEY,  source)
+  usersKey := fmt.Sprintf(USER_SOURCES_KEY, user_id)
+  subscriptionStartKey := fmt.Sprintf(USER_SOURCE_SUBSCRIPTION_DATE_KEY, source)
   rPipe := rClient.Pipeline()
   defer rPipe.Close()
   defer rPipe.Exec()
@@ -90,8 +99,8 @@ func addSourceToUser(source string, user_id int) {
 }
 
 func removeSourceFromUser(source string, user_id int) {
-  sourceKey := fmt.Sprintf("sources:%v", source)
-  usersKey := fmt.Sprintf("users:%v", user_id)
+  sourceKey := fmt.Sprintf(SOURCE_USERS_KEY,  source)
+  usersKey := fmt.Sprintf(USER_SOURCES_KEY, user_id)
   rPipe := rClient.Pipeline()
   defer rPipe.Close()
   defer rPipe.Exec()
@@ -101,7 +110,7 @@ func removeSourceFromUser(source string, user_id int) {
 }
 
 func removeSource(source string) {
-  sourceKey := fmt.Sprintf("sources:%v", source)
+  sourceKey := fmt.Sprintf(SOURCE_USERS_KEY,  source)
   members, err := rClient.SMembers(sourceKey).Result()
   if err == nil && len(members) == 0 {
     rClient.SRem("sources", source)
@@ -152,7 +161,7 @@ func renderUpdate(update FeedUpdate) string {
 }
 
 func latestUpdate(user string, source string, updateTime time.Time) bool {
-  subscriptionStartKey := fmt.Sprintf("%s:subscribed_at", source)
+  subscriptionStartKey := fmt.Sprintf(USER_SOURCE_SUBSCRIPTION_DATE_KEY, source)
   subscribedAt := rClient.HGet(subscriptionStartKey, user).Val()
   if subscribedAt == "nil" {
     return false
@@ -180,7 +189,7 @@ func main() {
 
   go func() {
     for feedUpdate := range feedChan {
-      validUpdateRecievers := rClient.SMembers(fmt.Sprintf("sources:%v",feedUpdate.source)).Val()
+      validUpdateRecievers := rClient.SMembers(fmt.Sprintf(SOURCE_USERS_KEY, feedUpdate.source)).Val()
       for _, user := range validUpdateRecievers {
         userID, err := strconv.Atoi(user)
         if err == nil && latestUpdate(user, feedUpdate.source, feedUpdate.item.Date) {
