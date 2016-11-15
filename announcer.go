@@ -151,7 +151,7 @@ func subscribeProcessor(bot *telebot.Bot, message telebot.Message) {
         response = append(response, fmt.Sprintf("[%s](%s)", subscription, sourceUrl(subscription)))
       }
     }
-    bot.SendMessage(message.Chat, strings.Join(response, "\n"), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown})
+    bot.SendMessage(message.Chat, strings.Join(response, "\n"), &telebot.SendOptions{ParseMode: telebot.ModeMarkdown, DisableWebPagePreview: true})
   }
 }
 
